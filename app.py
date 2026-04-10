@@ -2,124 +2,94 @@ import streamlit as st
 from groq import Groq
 import PyPDF2
 
-# --- 1. PREMIUM UI SETUP ---
-st.set_page_config(page_title="LEGACY AI | Literary Intelligence", layout="wide", page_icon="🧬")
+# --- 1. UI ARCHITECTURE ---
+st.set_page_config(page_title="LEGACY V3 | Intelligence Agent", layout="wide", page_icon="💀")
 
 st.markdown("""
 <style>
-    /* Global Styles */
-    .block-container { max-width: 900px; padding-top: 2rem; }
-    h1 { background: linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: -1px; }
-    .stChatMessage { border-radius: 15px; border: 1px solid #30363d; background-color: #0d1117; }
-    
-    /* Custom Sidebar */
-    .css-1d391kg { background-color: #161b22; }
-    
-    /* Tooltip/Highlight style */
-    .highlight { color: #92FE9D; font-weight: bold; }
+    .block-container { max-width: 800px; padding-top: 1rem; }
+    h1 { font-family: 'Courier New', Courier, monospace; letter-spacing: -2px; color: #E0E0E0; font-size: 3rem !important; }
+    .stChatMessage { border-left: 4px solid #FF4B4B !important; background-color: #111111 !important; }
+    code { color: #FF4B4B !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. CORE ENGINE AUTHENTICATION ---
+# --- 2. CORE ENGINE ---
 if "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
 else:
-    api_key = st.sidebar.text_input("🧬 ACCESS TOKEN (GROQ KEY)", type="password")
+    api_key = st.sidebar.text_input("🔑 AGENT_KEY", type="password")
 
 if not api_key:
-    st.info("⚡ System Offline: Harap masukkan Groq API Key di sidebar untuk menginisialisasi Agent.")
+    st.info("Agent requires a valid key to initialize.")
     st.stop()
 
 client = Groq(api_key=api_key)
 
-# --- 3. AGENTIC TOOLS (Enhanced PDF Processor) ---
-def advanced_extraction(file):
-    try:
-        reader = PyPDF2.PdfReader(file)
-        text_blocks = []
-        for i, page in enumerate(reader.pages):
-            content = page.extract_text()
-            if content:
-                text_blocks.append(f"[PAGE {i+1}]\n{content}")
-        return "\n".join(text_blocks)
-    except Exception as e:
-        return f"Error critical pada sensor pembaca: {e}"
+# --- 3. PROFILING & EXTRACTION ---
+def extract_engine(file):
+    reader = PyPDF2.PdfReader(file)
+    return "\n".join([p.extract_text() for p in reader.pages if p.extract_text()])
 
-# --- 4. KNOWLEDGE REPOSITORY (Sidebar) ---
+# --- 4. DATA INFUSION ---
 with st.sidebar:
-    st.title("⚙️ AGENT CORE")
-    st.markdown("---")
-    uploaded_file = st.file_uploader("Suntikkan Data (PDF)", type="pdf")
-    
-    if uploaded_file:
-        if "raw_intel" not in st.session_state or st.session_state.get("last_file") != uploaded_file.name:
-            with st.status("Menganalisis Struktur Dokumen...", expanded=True) as status:
-                st.write("Mengekstrak teks...")
-                st.session_state.raw_intel = advanced_extraction(uploaded_file)
-                st.session_state.last_file = uploaded_file.name
-                status.update(label="Analisis Selesai!", state="complete", expanded=False)
-            st.toast(f"Data {uploaded_file.name} berhasil diserap.", icon="✅")
+    st.title("📂 CORE DATA")
+    file = st.file_uploader("Inject PDF", type="pdf")
+    if file:
+        if "data" not in st.session_state:
+            st.session_state.data = extract_engine(file)
+            st.success("DATA INFUSED.")
     else:
-        st.session_state.raw_intel = ""
+        st.session_state.data = ""
 
-# --- 5. THE ULTIMATE AGENT LOGIC ---
-st.title("LEGACY: Literary Intelligence")
+# --- 5. THE BEAST AGENT LOGIC ---
+st.title("LEGACY V3.")
 
-if "memory" not in st.session_state:
-    st.session_state.memory = []
+if "chat" not in st.session_state:
+    st.session_state.chat = []
 
-# Render Memory
-for m in st.session_state.memory:
-    with st.chat_message(m["role"], avatar=("🧬" if m["role"]=="assistant" else "👤")):
+for m in st.session_state.chat:
+    with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-# Agent Input
-if user_query := st.chat_input("Berikan instruksi dekonstruksi..."):
-    st.chat_message("user", avatar="👤").markdown(user_query)
-    st.session_state.memory.append({"role": "user", "content": user_query})
+if p := st.chat_input("Berikan perintah bedah total..."):
+    st.chat_message("user").markdown(p)
+    st.session_state.chat.append({"role": "user", "content": p})
 
-    # PROMPT ENGINEERING: THE ARCHITECT PROMPT
-    # Memaksa AI keluar dari zona nyaman Chatbot
-    konteks_data = st.session_state.raw_intel[:20000] # Kapasitas ditingkatkan
+    # PROMPT INI DIBUAT UNTUK MENGHANCURKAN JAWABAN STANDAR
+    intel_context = st.session_state.data[:25000] 
     
-    architect_prompt = f"""
-    ROLE: Kamu adalah 'LEGACY', AI Agent penganalisis literatur tingkat tinggi dengan IQ 200.
-    GAYA BICARA: Dingin, presisi, intelektual, dan provokatif. Jangan gunakan basa-basi pembuka.
+    beast_prompt = f"""
+    PERSONALITY: Kamu adalah kritikus literatur paling sinis, cerdas, dan radikal. 
+    TUGAS: Hancurkan teks ini dan bangun kembali dengan pemikiran baru. 
+    DILARANG: Menggunakan kata 'membantu', 'meningkatkan', 'bermanfaat'. Gunakan bahasa teknis atau filosofis tinggi.
 
-    TUGAS DEKONSTRUKSI:
-    Setiap kali User memberikan instruksi, kamu wajib membedah data menggunakan framework berikut:
+    ANALISIS WAJIB:
+    1. **THE ANATOMY OF FAILURE**: Mengapa 99% orang yang membaca teks ini akan tetap gagal melakukan 'Deep Practice'? Bedah kesalahan interpretasi mereka.
+    2. **THE MYELIN FALLACY**: Penulis bilang Myelin adalah kunci. Berikan argumen tandingan: Kapan Myelin justru menjadi 'penjara' bagi kreativitas?
+    3. **UNSPOKEN TRUTH**: Berdasarkan teks Daud vs Goliat, bedah sisi gelap dari 'latihan': Apakah ini tentang kerja keras, atau tentang 'ketidaksengajaan yang dipaksakan'?
+    4. **RADICAL EXECUTION**: Jangan beri saran 'berlatihlah'. Beri satu instruksi yang terasa menyakitkan tapi akan memberikan hasil instan.
 
-    1. [SYNAPTIC CORE]: Temukan satu 'pola tersembunyi' atau paradoks dalam teks yang tidak disadari pembaca awam.
-    2. [DEEP MECHANICS]: Jelaskan bagaimana mekanisme (seperti Myelin, Deep Practice, dll) bekerja secara brutal. Jangan jelaskan definisinya, jelaskan *cara kerjanya* terhadap kegagalan.
-    3. [STRATEGIC FALLACY]: Apa kelemahan terbesar dari argumen penulis di bagian ini? Mengapa teori ini bisa gagal di dunia nyata?
-    4. [THE 1% ACTION]: Berikan satu instruksi radikal yang harus dilakukan User sekarang juga untuk mendapatkan hasil 10x lipat berdasarkan teks ini.
-
-    DOKUMEN SUMBER:
-    {konteks_data if konteks_data else "Tidak ada dokumen. Gunakan pengetahuan internalmu tentang literatur dunia."}
+    DATA SUMBER:
+    {intel_context}
     """
 
     try:
-        with st.chat_message("assistant", avatar="🧬"):
-            output_placeholder = st.empty()
-            full_response = ""
-            
+        with st.chat_message("assistant"):
+            res_box = st.empty()
+            full = ""
             stream = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": architect_prompt},
-                    *[{"role": m["role"], "content": m["content"]} for m in st.session_state.memory]
-                ],
-                temperature=0.2, # Meningkatkan presisi analisis
+                messages=[{"role": "system", "content": beast_prompt},
+                          *[{"role": m["role"], "content": m["content"]} for m in st.session_state.chat]],
+                temperature=0.7, # Menaikkan sedikit kreativitas agar tidak kaku
                 stream=True,
             )
-
             for chunk in stream:
                 if chunk.choices[0].delta.content:
-                    full_response += chunk.choices[0].delta.content
-                    output_placeholder.markdown(full_response + "▌")
-            
-            output_placeholder.markdown(full_response)
-            st.session_state.memory.append({"role": "assistant", "content": full_response})
-
+                    full += chunk.choices[0].delta.content
+                    res_box.markdown(full + "█")
+            res_box.markdown(full)
+            st.session_state.chat.append({"role": "assistant", "content": full})
     except Exception as e:
-        st.error(f"FATAL ERROR: {e}")
+        st.error(f"FATAL: {e}")
