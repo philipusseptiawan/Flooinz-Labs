@@ -2,111 +2,124 @@ import streamlit as st
 from groq import Groq
 import PyPDF2
 
-# --- 1. SETUP INTERFACE ---
-st.set_page_config(page_title="AI Book Analyst Agent", layout="wide", page_icon="📝")
+# --- 1. PREMIUM UI SETUP ---
+st.set_page_config(page_title="LEGACY AI | Literary Intelligence", layout="wide", page_icon="🧬")
 
 st.markdown("""
 <style>
-    .block-container { max-width: 850px; padding-top: 2rem; }
-    .stChatInputContainer { position: fixed; bottom: 30px; }
-    h1 { background: linear-gradient(45deg, #FF4B4B, #4527A0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5rem !important; font-weight: 800; }
-    .stChatMessage { border: 1px solid #f0f2f6; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+    /* Global Styles */
+    .block-container { max-width: 900px; padding-top: 2rem; }
+    h1 { background: linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: -1px; }
+    .stChatMessage { border-radius: 15px; border: 1px solid #30363d; background-color: #0d1117; }
+    
+    /* Custom Sidebar */
+    .css-1d391kg { background-color: #161b22; }
+    
+    /* Tooltip/Highlight style */
+    .highlight { color: #92FE9D; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. API KEY SETUP ---
+# --- 2. CORE ENGINE AUTHENTICATION ---
 if "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
 else:
-    api_key = st.sidebar.text_input("🔑 Groq API Key", type="password", help="Masukkan API Key untuk mengaktifkan otak Agen.")
+    api_key = st.sidebar.text_input("🧬 ACCESS TOKEN (GROQ KEY)", type="password")
 
 if not api_key:
-    st.info("💡 Selamat datang! Silakan masukkan Groq API Key di Sidebar untuk memulai dekonstruksi buku.")
+    st.info("⚡ System Offline: Harap masukkan Groq API Key di sidebar untuk menginisialisasi Agent.")
     st.stop()
 
 client = Groq(api_key=api_key)
 
-# --- 3. AGENT TOOLS (PDF ENGINE) ---
-def ekstraksi_teks(file):
+# --- 3. AGENTIC TOOLS (Enhanced PDF Processor) ---
+def advanced_extraction(file):
     try:
         reader = PyPDF2.PdfReader(file)
-        full_text = ""
-        for page in reader.pages:
-            t = page.extract_text()
-            if t: full_text += t
-        return full_text
+        text_blocks = []
+        for i, page in enumerate(reader.pages):
+            content = page.extract_text()
+            if content:
+                text_blocks.append(f"[PAGE {i+1}]\n{content}")
+        return "\n".join(text_blocks)
     except Exception as e:
-        return f"Gagal membaca PDF: {e}"
+        return f"Error critical pada sensor pembaca: {e}"
 
-# --- 4. SIDEBAR LIBRARY ---
+# --- 4. KNOWLEDGE REPOSITORY (Sidebar) ---
 with st.sidebar:
-    st.title("📚 Agent Library")
-    file_buku = st.file_uploader("Upload PDF Buku", type="pdf")
-    if file_buku:
-        if "konten_buku" not in st.session_state or st.session_state.get("file_name") != file_buku.name:
-            with st.spinner("Agen sedang membedah isi buku..."):
-                st.session_state.konten_buku = ekstraksi_teks(file_buku)
-                st.session_state.file_name = file_buku.name
-            st.success("Analisis Awal Selesai!")
+    st.title("⚙️ AGENT CORE")
+    st.markdown("---")
+    uploaded_file = st.file_uploader("Suntikkan Data (PDF)", type="pdf")
+    
+    if uploaded_file:
+        if "raw_intel" not in st.session_state or st.session_state.get("last_file") != uploaded_file.name:
+            with st.status("Menganalisis Struktur Dokumen...", expanded=True) as status:
+                st.write("Mengekstrak teks...")
+                st.session_state.raw_intel = advanced_extraction(uploaded_file)
+                st.session_state.last_file = uploaded_file.name
+                status.update(label="Analisis Selesai!", state="complete", expanded=False)
+            st.toast(f"Data {uploaded_file.name} berhasil diserap.", icon="✅")
     else:
-        st.session_state.konten_buku = ""
+        st.session_state.raw_intel = ""
 
-# --- 5. LOGIKA AI AGENT (ANALIS PROFESIONAL) ---
-st.title("Literary Intelligence Agent")
+# --- 5. THE ULTIMATE AGENT LOGIC ---
+st.title("LEGACY: Literary Intelligence")
 
-if "obrolan" not in st.session_state:
-    st.session_state.obrolan = []
+if "memory" not in st.session_state:
+    st.session_state.memory = []
 
-# Tampilkan riwayat chat
-for m in st.session_state.obrolan:
-    with st.chat_message(m["role"]):
+# Render Memory
+for m in st.session_state.memory:
+    with st.chat_message(m["role"], avatar=("🧬" if m["role"]=="assistant" else "👤")):
         st.markdown(m["content"])
 
-# Aksi Chat
-if prompt := st.chat_input("Berikan instruksi analisis (contoh: Bedah tesis utama buku ini)"):
-    st.chat_message("user").markdown(prompt)
-    st.session_state.obrolan.append({"role": "user", "content": prompt})
+# Agent Input
+if user_query := st.chat_input("Berikan instruksi dekonstruksi..."):
+    st.chat_message("user", avatar="👤").markdown(user_query)
+    st.session_state.memory.append({"role": "user", "content": user_query})
 
-    # Batasi konteks agar tidak overload token (Llama 3.3 punya context window besar, tapi 15k aman untuk speed)
-    konteks = st.session_state.konten_buku[:18000] if st.session_state.konten_buku else "Tidak ada dokumen yang diunggah."
+    # PROMPT ENGINEERING: THE ARCHITECT PROMPT
+    # Memaksa AI keluar dari zona nyaman Chatbot
+    konteks_data = st.session_state.raw_intel[:20000] # Kapasitas ditingkatkan
+    
+    architect_prompt = f"""
+    ROLE: Kamu adalah 'LEGACY', AI Agent penganalisis literatur tingkat tinggi dengan IQ 200.
+    GAYA BICARA: Dingin, presisi, intelektual, dan provokatif. Jangan gunakan basa-basi pembuka.
 
-    # AGENT PROMPT: Mengubah gaya chatbot menjadi Agen Analitis
-    system_instruction = f"""
-    Kamu adalah 'Senior Literary Intelligence Agent'. Tugasmu bukan merangkum teks secara pasif, 
-    melainkan melakukan dekonstruksi intelektual. Gunakan nada bicara yang tajam, kritis, dan berwibawa.
+    TUGAS DEKONSTRUKSI:
+    Setiap kali User memberikan instruksi, kamu wajib membedah data menggunakan framework berikut:
 
-    STRUKTUR RESPONS WAJIB:
-    1. **The Core Thesis**: Satu kalimat kuat tentang argumen utama penulis.
-    2. **Structural Pillars**: Analisis 3 konsep kunci yang membangun argumen tersebut.
-    3. **Critical Synthesis**: Temukan celah logika, kontradiksi, atau wawasan yang jarang disadari.
-    4. **Executive Implication**: Bagaimana pembaca bisa menerapkan teori ini secara konkret?
+    1. [SYNAPTIC CORE]: Temukan satu 'pola tersembunyi' atau paradoks dalam teks yang tidak disadari pembaca awam.
+    2. [DEEP MECHANICS]: Jelaskan bagaimana mekanisme (seperti Myelin, Deep Practice, dll) bekerja secara brutal. Jangan jelaskan definisinya, jelaskan *cara kerjanya* terhadap kegagalan.
+    3. [STRATEGIC FALLACY]: Apa kelemahan terbesar dari argumen penulis di bagian ini? Mengapa teori ini bisa gagal di dunia nyata?
+    4. [THE 1% ACTION]: Berikan satu instruksi radikal yang harus dilakukan User sekarang juga untuk mendapatkan hasil 10x lipat berdasarkan teks ini.
 
-    DATA KONTEKS BUKU:
-    {konteks}
+    DOKUMEN SUMBER:
+    {konteks_data if konteks_data else "Tidak ada dokumen. Gunakan pengetahuan internalmu tentang literatur dunia."}
     """
 
     try:
-        with st.chat_message("assistant"):
-            wadah_balasan = st.empty()
-            teks_berjalan = ""
+        with st.chat_message("assistant", avatar="🧬"):
+            output_placeholder = st.empty()
+            full_response = ""
             
             stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile", 
+                model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": system_instruction},
-                    *[{"role": m["role"], "content": m["content"]} for m in st.session_state.obrolan]
+                    {"role": "system", "content": architect_prompt},
+                    *[{"role": m["role"], "content": m["content"]} for m in st.session_state.memory]
                 ],
-                temperature=0.4, # Sedikit kreatif tapi tetap faktual
+                temperature=0.2, # Meningkatkan presisi analisis
                 stream=True,
             )
 
             for chunk in stream:
                 if chunk.choices[0].delta.content:
-                    teks_berjalan += chunk.choices[0].delta.content
-                    wadah_balasan.markdown(teks_berjalan + "▌")
+                    full_response += chunk.choices[0].delta.content
+                    output_placeholder.markdown(full_response + "▌")
             
-            wadah_balasan.markdown(teks_berjalan)
-            st.session_state.obrolan.append({"role": "assistant", "content": teks_berjalan})
+            output_placeholder.markdown(full_response)
+            st.session_state.memory.append({"role": "assistant", "content": full_response})
 
     except Exception as e:
-        st.error(f"Sistem Agen mengalami gangguan: {e}")
+        st.error(f"FATAL ERROR: {e}")
